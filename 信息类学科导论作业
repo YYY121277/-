@@ -1,0 +1,323 @@
+
+import itertools
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
+import seaborn as sns
+
+from collections import Counter
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+
+
+data = pd.read_csv('glass.csv')
+features = data.columns[:-1].tolist()
+data.head
+
+data.describe()
+
+data.info()
+
+ax = plt.subplot()
+
+g = sns.countplot(data.Type)
+g.set_xticklabels(['2', '1', '7', '3', '5', '6'])
+g.set_yticklabels(['0', '10', '20', '30', '40', '50', '60', '70'])
+
+# function to show values on bars
+def show_values_on_bars(axs):
+    def _show_on_single_plot(ax):        
+        for p in ax.patches:
+            _x = p.get_x() + p.get_width() / 2
+            _y = p.get_y() + p.get_height()
+            value = '{:.0f}'.format(p.get_height())
+            ax.text(_x, _y, value, ha="center") 
+
+    if isinstance(axs, np.ndarray):
+        for idx, ax in np.ndenumerate(axs):
+            _show_on_single_plot(ax)
+    else:
+        _show_on_single_plot(axs)
+show_values_on_bars(ax)
+
+sns.despine(left=True, bottom=True)
+plt.xlabel('Types')
+plt.ylabel('Count')
+plt.title('Visualizing class imbalancing', fontsize=30)
+plt.tick_params(axis = 'x', which='major', labelsize=15)
+plt.show()
+
+
+def count_outliers(data):
+    indices = []
+    
+    # iterate over columns
+    for col in data.columns.tolist():
+        Q1 = np.percentile(data[col], 25) # first quartile
+        Q3 = np.percentile(data[col], 75) # third quartile
+        outlier = 1.5 * (Q3 - Q1)
+        
+        outlier_list = data[(data[col] < Q1 - outlier) | (data[col] > Q3 + outlier)].index
+        
+        indices.extend(outlier_list)
+        
+    indices = Counter(indices)
+    multiple_outliers = list(k for k, v in indices.items() if v > 2)
+    
+    return multiple_outliers
+
+print(len(count_outliers(data[features])))
+
+
+correlation = data[features].corr()
+#plt.figure(figsize = (8, 8)) -- too clumsy
+plt.figure(figsize = (16, 16))
+sns.heatmap(correlation, cbar = True, square = True, annot = True, fmt = '.2f', xticklabels = features, 
+            yticklabels = features, alpha = 0.7, cmap = 'coolwarm')
+plt.show()
+
+
+indices = count_outliers(data[features])
+data = data.drop(indices).reset_index(drop = True)
+print(data.shape)
+
+
+ax = plt.subplot()
+
+g = sns.countplot(data.Type)
+g.set_xticklabels(['2', '1', '7', '3', '5', '6'])
+g.set_yticklabels(['0', '10', '20', '30', '40', '50', '60', '70'])
+
+# function to show values on bars
+def show_values_on_bars(axs):
+    def _show_on_single_plot(ax):        
+        for p in ax.patches:
+            _x = p.get_x() + p.get_width() / 2
+            _y = p.get_y() + p.get_height()
+            value = '{:.0f}'.format(p.get_height())
+            ax.text(_x, _y, value, ha="center") 
+
+    if isinstance(axs, np.ndarray):
+        for idx, ax in np.ndenumerate(axs):
+            _show_on_single_plot(ax)
+    else:
+        _show_on_single_plot(axs)
+show_values_on_bars(ax)
+
+sns.despine(left=True, bottom=True)
+plt.xlabel('Types')
+plt.ylabel('Count')
+plt.title('Visualizing class imbalancing', fontsize=30)
+plt.tick_params(axis = 'x', which='major', labelsize=15)
+plt.show()
+
+
+data7 = data[data['Type'] == 7]
+data7 = pd.concat([data7] * 2)
+
+
+data3 = data[data['Type'] == 3]
+data3 = pd.concat([data3] * 4)
+
+
+data5 = data[data['Type'] == 5]
+data5 = pd.concat([data5] * 5)
+
+
+data6 = data[data['Type'] == 6]
+data6 = pd.concat([data6] * 7)
+
+
+data1 = data[data['Type'] == 1]
+data2 = data[data['Type'] == 2]
+
+
+data = pd.concat([data1, data2, data3, data5, data6, data7])
+print(data.shape)
+
+
+ax = plt.subplot()
+
+g = sns.countplot(data.Type)
+g.set_xticklabels(['2', '1', '7', '3', '5', '6'])
+g.set_yticklabels(['0', '10', '20', '30', '40', '50', '60', '70'])
+
+# function to show values on bars
+def show_values_on_bars(axs):
+    def _show_on_single_plot(ax):        
+        for p in ax.patches:
+            _x = p.get_x() + p.get_width() / 2
+            _y = p.get_y() + p.get_height()
+            value = '{:.0f}'.format(p.get_height())
+            ax.text(_x, _y, value, ha="center") 
+
+    if isinstance(axs, np.ndarray):
+        for idx, ax in np.ndenumerate(axs):
+            _show_on_single_plot(ax)
+    else:
+        _show_on_single_plot(axs)
+show_values_on_bars(ax)
+
+sns.despine(left=True, bottom=True)
+plt.xlabel('Types')
+plt.ylabel('Count')
+plt.title('Visualizing class imbalancing', fontsize=30)
+plt.tick_params(axis = 'x', which='major', labelsize=15)
+plt.show()
+
+
+
+correlation = data[features].corr()
+plt.figure(figsize = (16, 16))
+sns.heatmap(correlation, cbar = True, square = True, annot = True, fmt = '.2f', xticklabels = features, 
+            yticklabels = features, alpha = 0.7, cmap = 'coolwarm')
+plt.show()
+
+
+
+data.plot()
+
+
+x = data.iloc[:, :-1].values # input attributes
+y = data.iloc[:, -1].values # target attributes
+
+# split data into train and test
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 0) # 80% train data, 20% test data
+
+
+dt_clf = DecisionTreeClassifier(criterion = 'entropy', random_state = 0)
+dt_clf.fit(x_train, y_train)
+
+
+dt_predict = dt_clf.predict(x_test)
+
+
+
+# for confusion matrix
+
+def plot_confusion_matrix(cm, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    plt.imshow(cm, interpolation='nearest', cmap = cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.tight_layout()
+
+
+print('Accuracy score: ', accuracy_score(y_test, dt_predict))
+
+
+
+dt_cm = confusion_matrix(y_test, dt_predict)
+plot_confusion_matrix(dt_cm, [2, 1, 7, 3, 5, 6])
+
+
+
+dt_clf = DecisionTreeClassifier(criterion = 'gini', random_state = 0)
+dt_clf.fit(x_train, y_train)
+
+
+
+
+dt_predict = dt_clf.predict(x_test)
+
+
+
+
+print('Accuracy score: ', accuracy_score(y_test, dt_predict))
+dt_cm = confusion_matrix(y_test, dt_predict)
+plot_confusion_matrix(dt_cm, [2, 1, 7, 3, 5, 6])
+
+
+
+rf_classifier = RandomForestClassifier(n_estimators = 500, criterion = 'gini', random_state = 0)
+rf_classifier.fit(x_train, y_train)
+
+
+
+rf_predict = rf_classifier.predict(x_test)
+
+
+
+print('Accuracy score: ', accuracy_score(y_test, dt_predict))
+dt_cm = confusion_matrix(y_test, dt_predict)
+plot_confusion_matrix(dt_cm, [2, 1, 7, 3, 5, 6])
+
+
+
+rf_classifier = RandomForestClassifier(n_estimators = 500, criterion = 'entropy', random_state = 0)
+rf_classifier.fit(x_train, y_train)
+
+
+rf_predict = rf_classifier.predict(x_test)
+
+
+
+print('Accuracy score: ', accuracy_score(y_test, dt_predict))
+dt_cm = confusion_matrix(y_test, dt_predict)
+plot_confusion_matrix(dt_cm, [2, 1, 7, 3, 5, 6])
+
+
+# finding the best K
+
+score = []
+
+for k in range(32):
+    knn = KNeighborsClassifier(k)
+    score_val = cross_val_score(knn, x_train, y_train, scoring = 'accuracy', cv = 10)
+    score_mean = score_val.mean()
+    score.append(score_mean)
+
+best_K = np.argmax(score) + 1
+
+
+knn = KNeighborsClassifier(best_K)
+knn.fit(x_train, y_train)
+
+
+
+knn_predict = knn.predict(x_test)
+
+
+# ### Model evaluation
+
+
+print('Accuracy score: ', accuracy_score(y_test, knn_predict))
+knn_cm = confusion_matrix(y_test, knn_predict)
+plot_confusion_matrix(knn_cm, [2, 1, 7, 3, 5, 6])
